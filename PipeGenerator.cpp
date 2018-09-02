@@ -36,7 +36,7 @@ void PipeGenerator::LoadModels() {
         });
     }
 
-    material_ = cache->GetResource<Material>("Materials/DefaultMaterial.xml");
+    material_ = cache->GetResource<Material>("Materials/RustyMetalMaterial.xml");
 }
 
 void PipeGenerator::Start() {

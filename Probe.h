@@ -12,10 +12,7 @@ const unsigned CTRL_BACK = 2;
 const unsigned CTRL_LEFT = 4;
 const unsigned CTRL_RIGHT = 8;
 
-const float YAW_SENSITIVITY = 0.1f;
 const float ENGINE_POWER = 10.0f;
-const float DOWN_FORCE = 10.0f;
-const float MAX_WHEEL_ANGLE = 22.5f;
 
 class Probe : public LogicComponent {
 

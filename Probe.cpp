@@ -24,7 +24,7 @@ void Probe::RegisterObject(Context* context) {
 }
 
 void Probe::FixedUpdate(float timeStep) {
-    if (node_->GetPosition().y_ - 150 < pipeGenerator_->GetEdge()) {
+    if (node_->GetPosition().y_ - 500 < pipeGenerator_->GetEdge()) {
         pipeGenerator_->GeneratePipes();
     }
 

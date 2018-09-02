@@ -42,12 +42,12 @@ class PipeProbe : public Application {
 
     SharedPtr<Scene> scene_;
 
-    SharedPtr<Node> cameraNode_;
     float yaw_;
     float pitch_;
     bool drawDebug_;
 
-    SharedPtr<Node> reflectorNode_;
+    SharedPtr<Node> cameraNode_;
+    SharedPtr<Node> zoneNode_;
 
     WeakPtr<Probe> probe_;
 
@@ -146,24 +146,13 @@ public:
         GetSubsystem<Renderer>()->SetViewport(0, new Viewport(context_, scene_, camera));
 
         // Create static scene content. First create a zone for ambient lighting and fog control
-        Node* zoneNode = scene_->CreateChild("Zone");
-        auto* zone = zoneNode->CreateComponent<Zone>();
-        zone->SetAmbientColor(Color(0.15f, 0.15f, 0.15f));
+        zoneNode_ = scene_->CreateChild("Zone");
+        auto* zone = zoneNode_->CreateComponent<Zone>();
+        zone->SetAmbientColor(Color(1.0f, 1.0f, 1.0f));
         zone->SetFogColor(Color(0.5f, 0.5f, 0.7f));
         zone->SetFogStart(300.0f);
         zone->SetFogEnd(500.0f);
         zone->SetBoundingBox(BoundingBox(-2000.0f, 2000.0f));
-
-        // Create a directional light with cascaded shadow mapping
-        reflectorNode_ = scene_->CreateChild("DirectionalLight");
-        auto* reflectorLight = reflectorNode_->CreateComponent<Light>();
-        reflectorLight->SetLightType(LIGHT_POINT);
-        //reflectorLight->SetRadius(5);
-        reflectorLight->SetRange(150);
-        //reflectorLight->SetCastShadows(true);
-        reflectorLight->SetShadowBias(BiasParameters(0.00025f, 0.5f));
-        reflectorLight->SetShadowCascade(CascadeParameters(10.0f, 50.0f, 200.0f, 0.0f, 0.8f));
-        reflectorLight->SetSpecularIntensity(0.3f);
     }
 
     void HandleUpdate(StringHash eventType, VariantMap& eventData) {
@@ -224,10 +213,6 @@ public:
             cameraNode_->Translate(Vector3::LEFT * MOVE_SPEED * timeStep);
         if (input->GetKeyDown(KEY_D))
             cameraNode_->Translate(Vector3::RIGHT * MOVE_SPEED * timeStep);
-
-        reflectorNode_->SetRotation(cameraNode_->GetRotation());
-        reflectorNode_->SetPosition(cameraNode_->GetPosition() );
-        reflectorNode_->SetDirection(cameraNode_->GetDirection());
     }
 
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
@@ -261,6 +246,8 @@ public:
 
         cameraNode_->SetPosition(cameraTargetPos);
         cameraNode_->SetRotation(dir);
+
+        zoneNode_->SetPosition(cameraTargetPos);
     }
 };
 
