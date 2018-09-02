@@ -11,15 +11,18 @@
 
 using namespace Urho3D;
 
+const float  PIPE_RADIUS = 10.0f;
+const String PIPE_MODEL_DIR = "Models/Pipes/";
+const String TRASH_MODEL_DIR = "Models/Trash/";
+const String TRASH_MATERIAL_DIR = "Materials/Trash/";
 
 class PipeGenerator: public Object {
 
-    const String PIPE_MODEL_DIR = "Models/Pipes/";
 
     URHO3D_OBJECT(PipeGenerator, Object)
 
 public:
-    std::vector<Model*> models_;
+    std::vector<Model*> pipeModels_;
 
     static void RegisterObject(Context * context);
 
@@ -30,12 +33,16 @@ public:
     void GeneratePipes();
 private:
     std::vector<Node*> pipes_;
+    std::vector<Model*> trashModels_;
+    std::vector<Material*> trashMaterials_;
     WeakPtr<Scene> scene_;
-    WeakPtr<Material> material_;
+    WeakPtr<Material> pipeMaterial_;
     Vector3 nextPos_;
 
     void Start();
     void LoadModels();
-    void ScanPipeModels(std::vector<String> &result, const String& pathName);
+    void ScanFiles(std::vector<String> &result, const String& pathName, String ext = ".mdl");
+    void GenerateLights(Node* pipeNode);
     void GenerateEnemies(Node* pipeNode);
+    Node* RandomEnemy(Node* parent);
 };

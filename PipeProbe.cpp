@@ -47,7 +47,7 @@ class PipeProbe : public Application {
     bool drawDebug_;
 
     SharedPtr<Node> cameraNode_;
-    SharedPtr<Node> zoneNode_;
+    SharedPtr<Node> reflectorNode_;
 
     WeakPtr<Probe> probe_;
 
@@ -145,14 +145,11 @@ public:
 
         GetSubsystem<Renderer>()->SetViewport(0, new Viewport(context_, scene_, camera));
 
-        // Create static scene content. First create a zone for ambient lighting and fog control
-        zoneNode_ = scene_->CreateChild("Zone");
-        auto* zone = zoneNode_->CreateComponent<Zone>();
-        zone->SetAmbientColor(Color(1.0f, 1.0f, 1.0f));
-        zone->SetFogColor(Color(0.5f, 0.5f, 0.7f));
-        zone->SetFogStart(300.0f);
-        zone->SetFogEnd(500.0f);
-        zone->SetBoundingBox(BoundingBox(-2000.0f, 2000.0f));
+        // Create probe reflector
+        reflectorNode_ = scene_->CreateChild("PointLight");
+        auto* light = reflectorNode_->CreateComponent<Light>();
+        light->SetLightType(LIGHT_SPOT);
+        light->SetRange(150);
     }
 
     void HandleUpdate(StringHash eventType, VariantMap& eventData) {
@@ -162,14 +159,10 @@ public:
         float timeStep = eventData[P_TIMESTEP].GetFloat();
 
         // Move the camera, scale movement with time step
-        //MoveCamera(timeStep);
+        MoveCamera(timeStep);
 
         auto* input = GetSubsystem<Input>();
         if (probe_) {
-           // auto* input = GetSubsystem<Input>();
-            //probe_->controls_.yaw_ += (float)input->GetMouseMoveX() * YAW_SENSITIVITY;
-            //probe_->controls_.pitch_ += (float)input->GetMouseMoveY() * YAW_SENSITIVITY;
-
             auto* ui = GetSubsystem<UI>();
             if (!ui->GetFocusElement()) {
                 probe_->controls_.Set(CTRL_FORWARD, input->GetKeyDown(KEY_W));
@@ -201,18 +194,7 @@ public:
         //pitch_ = Clamp(pitch_, -90.0f, 90.0f);
 
         // Construct new orientation for the camera scene node from yaw and pitch. Roll is fixed to zero
-        cameraNode_->SetRotation(Quaternion(pitch_, yaw_, 0.0f));
-
-        // Read WASD keys and move the camera scene node to the corresponding direction if they are pressed
-        // Use the Translate() function (default local space) to move relative to the node's orientation.
-        if (input->GetKeyDown(KEY_W))
-            cameraNode_->Translate(Vector3::FORWARD * MOVE_SPEED * timeStep);
-        if (input->GetKeyDown(KEY_S))
-            cameraNode_->Translate(Vector3::BACK * MOVE_SPEED * timeStep);
-        if (input->GetKeyDown(KEY_A))
-            cameraNode_->Translate(Vector3::LEFT * MOVE_SPEED * timeStep);
-        if (input->GetKeyDown(KEY_D))
-            cameraNode_->Translate(Vector3::RIGHT * MOVE_SPEED * timeStep);
+        cameraNode_->SetRotation(Quaternion(pitch_, 0.0f, 0.0f) * Quaternion(0.0f, yaw_, 0.0f));
     }
 
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
@@ -245,9 +227,8 @@ public:
         Vector3 cameraTargetPos = probeNode->GetPosition() - dir * Vector3(0.0f, 0.0f, CAMERA_DISTANCE);
 
         cameraNode_->SetPosition(cameraTargetPos);
-        cameraNode_->SetRotation(dir);
-
-        zoneNode_->SetPosition(cameraTargetPos);
+        reflectorNode_->SetPosition(probeNode->GetPosition());
+        reflectorNode_->SetDirection(probeNode->GetDirection());
     }
 };
 
