@@ -28,42 +28,26 @@ void Probe::FixedUpdate(float timeStep) {
         pipeGenerator_->GeneratePipes();
     }
 
-    float pitch = 0.0f;
-    float roll = 0.0f;
-
     Vector3 direction = node_->GetPosition() - prevPosition_;
     Vector3 force;
 
     // Read controls
     Quaternion probeRot = probeBody_->GetRotation();
     if (controls_.buttons_ & CTRL_LEFT) {
-        roll = 1.0f;
         force.x_ = -1.0f;
     }
     if (controls_.buttons_ & CTRL_RIGHT) {
-        roll = -1.0f;
         force.x_ = 1.0f;
     }
     if (controls_.buttons_ & CTRL_FORWARD) {
-        pitch = 1.0f;
         force.z_ = -1.0f;
     }
     if (controls_.buttons_ & CTRL_BACK) {
-        pitch = -1.0f;
         force.z_ = 1.0f;
     }
-
-
-    if (pitch != 0.0f) {
-        probeRot = probeRot * Quaternion(pitch, Vector3::RIGHT);
-    }
-    if (roll != 0.0f) {
-        probeRot = probeRot * Quaternion(roll, Vector3::FORWARD);
-    }
-
-    probeBody_->SetRotation(probeRot);
-    probeBody_->ApplyForce(force * 300);
-
+    
+    probeBody_->ApplyForce(force.Normalized() * 100);
+    node_->SetDirection(direction);
     prevPosition_ = node_->GetPosition();
 }
 
