@@ -23,6 +23,7 @@
 
 #include "Probe.h"
 #include "PipeGenerator.h"
+#include "Obstacle.h"
 
 #include <Urho3D/Graphics/DebugRenderer.h>
 #include <Urho3D/DebugNew.h>
@@ -57,12 +58,13 @@ public:
         Application(context),
         yaw_(0.0f),
         pitch_(90.0f),
-        drawDebug_(true) {
+        drawDebug_(false) {
 
         SetRandomSeed(Urho3D::Time::GetTimeSinceEpoch());
 
         Probe::RegisterObject(context);
         PipeGenerator::RegisterObject(context);
+        Obstacle::RegisterObject(context);
     }
 
     virtual void Setup() {

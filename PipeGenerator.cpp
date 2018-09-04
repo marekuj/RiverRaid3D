@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PipeGenerator.h"
+#include "Obstacle.h"
 
 #include <Urho3D/IO/FileSystem.h>
 #include <Urho3D/Scene/Scene.h>
@@ -91,11 +92,14 @@ void PipeGenerator::GeneratePipes() {
         auto* shape = pipeNode->CreateComponent<CollisionShape>();
         shape->SetGImpactMesh(object->GetModel(), 0);
 
-        nextPos_.y_ -= model->GetBoundingBox().Size().y_ * pipeNode->GetScale().y_;
-
         GenerateLights(pipeNode);
-        GenerateEnemies(pipeNode);
+        if (nextPos_ != Vector3::ZERO) { //do not generate obstacles for very first pipe
+            GenerateObstacles(pipeNode);
+        }
+
         pipes_.push_back(pipeNode);
+
+        nextPos_.y_ -= model->GetBoundingBox().Size().y_ * pipeNode->GetScale().y_;
     }
 }
 
@@ -128,7 +132,7 @@ void PipeGenerator::GenerateLights(Node* pipeNode) {
     }
 }
 
-void PipeGenerator::GenerateEnemies(Node* pipeNode) {
+void PipeGenerator::GenerateObstacles(Node* pipeNode) {
     auto* model = pipeNode->GetComponent<StaticModel>()->GetModel();
 
     auto buff = model->GetVertexBuffers()[0];
@@ -145,27 +149,19 @@ void PipeGenerator::GenerateEnemies(Node* pipeNode) {
         const Vector3& vertex = *((const Vector3*)(&data[(vertexStart + rand) * vertexSize]));
         const Vector3&  normal = *((const Vector3*)(&data[(vertexStart + rand) * vertexSize + normalStart]));
 
-        auto* enemy = RandomEnemy(pipeNode);
-        enemy->SetPosition(vertex + (1.5f + Random(PIPE_RADIUS)) * normal);
+        auto* obstacle = RandomObstacle(pipeNode);
+        obstacle->SetPosition(vertex + (2.5f + Random(PIPE_RADIUS)) * normal);
     }
 }
 
-Node* PipeGenerator::RandomEnemy(Node* parent) {
-    auto* enemyNode = parent->CreateChild("enemy");
-    enemyNode->SetScale(Vector3::ONE * 0.4f);
-    enemyNode->SetRotation(Quaternion(Random(180), Vector3::DOWN) * Quaternion(Random(180), Vector3::RIGHT));
-
-    auto* cache = GetSubsystem<ResourceCache>();
-    auto* object = enemyNode->CreateComponent<StaticModel>();        
+Node* PipeGenerator::RandomObstacle(Node* parent) {
+    auto* obstacleNode = parent->CreateChild("obstacle");
+    auto* obstacle = obstacleNode->CreateComponent<Obstacle>();
     auto* model = trashModels_[Rand() % trashModels_.size()];
-    object->SetModel(model);
-    object->SetMaterial(trashMaterials_[Rand() % trashMaterials_.size()]);
+    auto* material = trashMaterials_[Rand() % trashMaterials_.size()];
+    obstacle->Init(model, material);
 
-    auto* body = enemyNode->CreateComponent<RigidBody>();
-    body->SetCollisionLayer(2);
-    enemyNode->CreateComponent<CollisionShape>()->SetGImpactMesh(model);
-
-    return enemyNode;
+    return obstacleNode;
 }
 
 void PipeGenerator::Init(Scene *scene) {

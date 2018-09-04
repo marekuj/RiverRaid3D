@@ -43,6 +43,6 @@ private:
     void LoadModels();
     void ScanFiles(std::vector<String> &result, const String& pathName, String ext = ".mdl");
     void GenerateLights(Node* pipeNode);
-    void GenerateEnemies(Node* pipeNode);
-    Node* RandomEnemy(Node* parent);
+    void GenerateObstacles(Node* pipeNode);
+    Node* RandomObstacle(Node* parent);
 };
