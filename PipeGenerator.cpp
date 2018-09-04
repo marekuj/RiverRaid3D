@@ -140,7 +140,7 @@ void PipeGenerator::GenerateEnemies(Node* pipeNode) {
     unsigned normalStart = VertexBuffer::GetElementOffset(buff->GetElements(), TYPE_VECTOR3, SEM_NORMAL);
     unsigned vertexStart = VertexBuffer::GetElementOffset(buff->GetElements(), TYPE_VECTOR3, SEM_POSITION);
 
-    for (int j = 0; j < 2; ++j) {
+    for (int j = 0; j < 5; ++j) {
         int rand = Rand() % vertexCount;
         const Vector3& vertex = *((const Vector3*)(&data[(vertexStart + rand) * vertexSize]));
         const Vector3&  normal = *((const Vector3*)(&data[(vertexStart + rand) * vertexSize + normalStart]));
@@ -153,7 +153,7 @@ void PipeGenerator::GenerateEnemies(Node* pipeNode) {
 Node* PipeGenerator::RandomEnemy(Node* parent) {
     auto* enemyNode = parent->CreateChild("enemy");
     enemyNode->SetScale(Vector3::ONE * 0.4f);
-    enemyNode->SetRotation(Quaternion(90, Vector3::RIGHT) * Quaternion(RandStandardNormal(), Vector3::DOWN));
+    enemyNode->SetRotation(Quaternion(Random(180), Vector3::DOWN) * Quaternion(Random(180), Vector3::RIGHT));
 
     auto* cache = GetSubsystem<ResourceCache>();
     auto* object = enemyNode->CreateComponent<StaticModel>();        
