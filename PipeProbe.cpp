@@ -193,7 +193,8 @@ public:
         IntVector2 mouseMove = input->GetMouseMove();
         yaw_ += MOUSE_SENSITIVITY * mouseMove.x_;
         pitch_ += MOUSE_SENSITIVITY * mouseMove.y_;
-        //pitch_ = Clamp(pitch_, -90.0f, 90.0f);
+        yaw_ = Clamp(yaw_, -90.0f, 90.0f);
+        pitch_ = Clamp(pitch_, 0.0f, 180.0f);
 
         // Construct new orientation for the camera scene node from yaw and pitch. Roll is fixed to zero
         cameraNode_->SetRotation(Quaternion(pitch_, 0.0f, 0.0f) * Quaternion(0.0f, yaw_, 0.0f));
