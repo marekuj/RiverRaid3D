@@ -17,7 +17,7 @@
 #include <algorithm>
 #include <vector>
 
-PipeGenerator::PipeGenerator(Context *context): Object(context), pipeModels_(), nextPos_(Vector3::ZERO), pipes_(4) {
+PipeGenerator::PipeGenerator(Context *context): Object(context), pipeModels_(), nextPos_(Vector3::ZERO) {
 }
 
 PipeGenerator::~PipeGenerator() {
@@ -67,14 +67,16 @@ void PipeGenerator::Start() {
 }
 
 void PipeGenerator::GeneratePipes() {
-    if (!pipes_.size() > 0) {
-        for (auto* pipe : pipes_) {
+    if (pipes_.size() > 0) {
+        for (std::vector<Node*>::iterator it = pipes_.begin(); it != pipes_.end() - 2; ++it) {
+            auto* pipe = *it;
             pipe->Remove();
+            
         }
-        pipes_.clear();
+        pipes_.erase(pipes_.begin(), pipes_.end() - 2);
     }
 
-    for (int j = 0; j < 2; ++j) {
+    for (int j = 0; j < 3; ++j) {
         Node* pipeNode = scene_->CreateChild("Pipe");
         pipeNode->SetScale(5);
 

@@ -55,28 +55,20 @@ void Probe::Init() {
     pipeGenerator_ = context_->GetSubsystem<PipeGenerator>();
     auto* object = node_->CreateComponent<StaticModel>();
 
-    //node_->SetRotation(Quaternion(90, Vector3::LEFT));
-    //node_->SetDirection(Vector3(0.0f, 1.0f, 0.0f));
-    //controls_.pitch_ = 90;
-
     auto* cache = GetSubsystem<ResourceCache>();
     object->SetModel(cache->GetResource<Model>("Models/Probe.mdl"));
     object->SetMaterial(cache->GetResource<Material>("Materials/ProbeMaterial.xml"));
     object->SetCastShadows(true);
 
-    // Create RigidBody and CollisionShape components like above. Give the RigidBody mass to make it movable
-    // and also adjust friction. The actual mass is not important; only the mass ratios between colliding
-    // objects are significant
     probeBody_ = node_->CreateComponent<RigidBody>();
     probeBody_->SetMass(4.0f);
     probeBody_->SetLinearDamping(0.2f); // Some air resistance
     probeBody_->SetAngularDamping(0.5f);
 
     probeBody_->SetCollisionLayer(2);
-    //probeBody->SetFriction(400.75f);
-    //probeBody_->SetLinearVelocity(node_->GetDirection() * 10);
+    probeBody_->SetFriction(400.75f);
+    probeBody_->SetLinearVelocity(node_->GetDirection() * 30);
     auto* probeShape = node_->CreateComponent<CollisionShape>();
-    //probeShape->SetBox(object->GetModel()->GetBoundingBox().Size());
     probeShape->SetGImpactMesh(object->GetModel());
 }
 
