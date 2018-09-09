@@ -68,13 +68,10 @@ void PipeProbe::Start() {
     Node* probeNode = scene_->CreateChild("Probe");
     probeNode->SetPosition(Vector3(0.0f, -1.0f, 0.0f));
     probeNode->SetDirection(Vector3::DOWN);
-    //probeNode->SetRotation(Quaternion(180, Vector3::RIGHT) * Quaternion(180, Vector3::DOWN));
 
     probe_ = probeNode->CreateComponent<Probe>();
     probe_->Init();
-
-    //GetSubsystem<Input>()->SetMouseMode(MM_ABSOLUTE);
-
+    
     SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(PipeProbe, HandleKeyDown));
     SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(PipeProbe, HandleUpdate));
     SubscribeToEvent(E_POSTUPDATE, URHO3D_HANDLER(PipeProbe, HandlePostUpdate));
@@ -199,21 +196,7 @@ void PipeProbe::HandlePostUpdate(StringHash eventType, VariantMap& eventData) {
 
     Node* probeNode = probe_->GetNode();
     Quaternion dir = cameraNode_->GetRotation();
-
-    /*
-    Ray cameraRay(cameraNode_->GetWorldPosition(), Vector3::FORWARD);
-    PhysicsRaycastResult result;
-    scene_->GetComponent<PhysicsWorld>()->RaycastSingle(result, cameraRay, 1000, 2);
-    if (result.body_) {
-        Vector3 v(cameraRay.origin_ - result.normal_);
-        float angle = cameraRay.origin_.Angle(result.normal_);
-
-        if (angle > 0 && Abs(90 - angle) > 5 ) {
-            cameraNode_->Rotate(Quaternion(90 - angle, cameraNode_->GetDirection()));
-        }
-    }
-    */
-      
+     
     Vector3 cameraTargetPos = probeNode->GetPosition() - dir * Vector3(0.0f, 0.0f, CAMERA_DISTANCE);
 
     cameraNode_->SetPosition(cameraTargetPos);
