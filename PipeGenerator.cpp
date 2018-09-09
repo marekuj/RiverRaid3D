@@ -132,7 +132,7 @@ void PipeGenerator::GenerateLights(Node* pipeNode) {
         Node* lightNode = pipeNode->CreateChild("PointLight");
         auto* light = lightNode->CreateComponent<Light>();
         light->SetLightType(LIGHT_POINT);
-        light->SetRange(100);
+        light->SetRange(150);
         lightNode->SetPosition(vertex);
         lightNode->SetDirection(normal);
 

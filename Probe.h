@@ -3,8 +3,6 @@
 #include <Urho3D/Input/Controls.h>
 #include <Urho3D/Scene/LogicComponent.h>
 
-class PipeGenerator;
-
 using namespace Urho3D;
 
 const unsigned CTRL_FORWARD = 1;
@@ -31,8 +29,6 @@ public:
 
     /// Movement controls.
     Controls controls_;
-
-    WeakPtr<PipeGenerator> pipeGenerator_;
 
 private:
     WeakPtr<RigidBody> probeBody_;

@@ -10,7 +10,6 @@
 #include <Urho3D/Resource/ResourceCache.h>
 #include <Urho3D/Scene/Scene.h>
 
-#include "PipeGenerator.h"
 #include "Probe.h"
 
 #include <iostream>
@@ -25,10 +24,6 @@ void Probe::RegisterObject(Context* context) {
 }
 
 void Probe::FixedUpdate(float timeStep) {
-    if (node_->GetPosition().y_ - 500 < pipeGenerator_->GetEdge()) {
-        pipeGenerator_->GeneratePipes();
-    }
-
     Vector3 direction = node_->GetPosition() - prevPosition_;
     Vector3 force;
 
@@ -53,7 +48,6 @@ void Probe::FixedUpdate(float timeStep) {
 }
 
 void Probe::Init() {
-    pipeGenerator_ = context_->GetSubsystem<PipeGenerator>();
     auto* object = node_->CreateComponent<StaticModel>();
 
     auto* cache = GetSubsystem<ResourceCache>();
