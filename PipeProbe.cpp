@@ -1,238 +1,222 @@
 #include <Urho3D/Urho3D.h>
+
+#include <Urho3D/Core/CoreEvents.h>
+
 #include <Urho3D/Engine/Application.h>
 #include <Urho3D/Engine/Engine.h>
 #include <Urho3D/Engine/EngineDefs.h>
-#include <Urho3D/Core/CoreEvents.h>
-#include <Urho3D/Input/InputEvents.h>
-#include <Urho3D/Input/Input.h>
-
-#include <Urho3D/Scene/Scene.h>
-#include <Urho3D/Scene/SceneEvents.h>
-#include <Urho3D/Graphics/Octree.h>
-#include <Urho3D/Physics/PhysicsWorld.h>
-#include <Urho3D/Graphics/Renderer.h>
 
 #include <Urho3D/Graphics/Camera.h>
+#include <Urho3D/Graphics/Geometry.h>
+#include <Urho3D/Graphics/Model.h>
+#include <Urho3D/Graphics/Octree.h>
+#include <Urho3D/Graphics/Renderer.h>
+#include <Urho3D/Graphics/Zone.h>
+
+#include <Urho3D/Input/Input.h>
+#include <Urho3D/Input/InputEvents.h>
+
+#include <Urho3D/Scene/Node.h>
+#include <Urho3D/Scene/Scene.h>
+#include <Urho3D/Scene/SceneEvents.h>
+
+#include <Urho3D/Physics/PhysicsWorld.h>
+
+#include <Urho3D/Resource/ResourceCache.h>
+
 #include <Urho3D/UI/Font.h>
 #include <Urho3D/UI/Text.h>
 #include <Urho3D/UI/UI.h>
-#include <Urho3D/Resource/ResourceCache.h>
-#include <Urho3D/Graphics/Zone.h>
-#include <Urho3D/Graphics/Model.h>
-#include <Urho3D/Graphics/Geometry.h>
 
+#include "PipeProbe.h"
 #include "Probe.h"
 #include "PipeGenerator.h"
 #include "Obstacle.h"
 
-#include <Urho3D/Graphics/DebugRenderer.h>
-#include <Urho3D/DebugNew.h>
 #include <Urho3D/Core/Profiler.h>
+#include <Urho3D/DebugNew.h>
 #include <Urho3D/Engine/DebugHud.h>
-
-#include <Urho3D/IO/FileSystem.h>
+#include <Urho3D/Graphics/DebugRenderer.h>
 
 #include <vector>
 #include <iostream>
 
-using namespace Urho3D;
+PipeProbe::PipeProbe(Context* context):
+    Application(context),
+    yaw_(0.0f),
+    pitch_(90.0f),
+    drawDebug_(false) {
 
-const float CAMERA_DISTANCE = 45.0f;
+    SetRandomSeed(Time::GetTimeSinceEpoch());
 
-class PipeProbe : public Application {
+    Probe::RegisterObject(context);
+    PipeGenerator::RegisterObject(context);
+    Obstacle::RegisterObject(context);
+}
 
-    SharedPtr<Scene> scene_;
+void PipeProbe::Setup() {
+    // Called before engine initialization. engineParameters_ member variable can be modified here
+    engineParameters_[EP_FULL_SCREEN] = false;
+}
 
-    float yaw_;
-    float pitch_;
-    bool drawDebug_;
+void PipeProbe::Start() {
+    // Called after engine initialization. Setup application & subscribe to events here
+    CreateScene();
+    auto *pipeGenerator = GetSubsystem<PipeGenerator>();
+    pipeGenerator->Init(scene_);
 
-    SharedPtr<Node> cameraNode_;
-    SharedPtr<Node> reflectorNode_;
+    Node* probeNode = scene_->CreateChild("Probe");
+    probeNode->SetPosition(Vector3(0.0f, -1.0f, 0.0f));
+    probeNode->SetDirection(Vector3::DOWN);
+    //probeNode->SetRotation(Quaternion(180, Vector3::RIGHT) * Quaternion(180, Vector3::DOWN));
 
-    WeakPtr<Probe> probe_;
+    probe_ = probeNode->CreateComponent<Probe>();
+    probe_->Init();
 
-public:
+    //GetSubsystem<Input>()->SetMouseMode(MM_ABSOLUTE);
 
-    PipeProbe(Context* context): 
-        Application(context),
-        yaw_(0.0f),
-        pitch_(90.0f),
-        drawDebug_(false) {
+    SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(PipeProbe, HandleKeyDown));
+    SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(PipeProbe, HandleUpdate));
+    SubscribeToEvent(E_POSTUPDATE, URHO3D_HANDLER(PipeProbe, HandlePostUpdate));
+    SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(PipeProbe, HandlePostRenderUpdate));
 
-        SetRandomSeed(Urho3D::Time::GetTimeSinceEpoch());
+    // Unsubscribe the SceneUpdate event from base class as the camera node is being controlled in HandlePostUpdate() in this sample
+    UnsubscribeFromEvent(E_SCENEUPDATE);
+}
 
-        Probe::RegisterObject(context);
-        PipeGenerator::RegisterObject(context);
-        Obstacle::RegisterObject(context);
-    }
+void PipeProbe::Stop() {
+    // Perform optional cleanup after main loop has terminated
+}
 
-    virtual void Setup() {
-        // Called before engine initialization. engineParameters_ member variable can be modified here
-        engineParameters_[EP_FULL_SCREEN] = false;
-    }
+void PipeProbe::HandleKeyDown(StringHash eventType, VariantMap& eventData) {
+    using namespace KeyDown;
+    // Check for pressing ESC. Note the engine_ member variable for convenience access to the Engine object
+    int key = eventData[P_KEY].GetInt();
+    if (key == KEY_ESCAPE)
+        engine_->Exit();
 
-    virtual void Start() {
-        // Called after engine initialization. Setup application & subscribe to events here
-        CreateScene();
-        auto *pipeGenerator = GetSubsystem<PipeGenerator>();
-        pipeGenerator->Init(scene_);
+    if (key == KEY_F1)
+        drawDebug_ ^= true;
 
-        Node* probeNode = scene_->CreateChild("Probe");
-        probeNode->SetPosition(Vector3(0.0f, -1.0f, 0.0f));
-        probeNode->SetDirection(Vector3::DOWN);
-        //probeNode->SetRotation(Quaternion(180, Vector3::RIGHT) * Quaternion(180, Vector3::DOWN));
-
-        probe_ = probeNode->CreateComponent<Probe>();
-        probe_->Init();
-
-        //GetSubsystem<Input>()->SetMouseMode(MM_ABSOLUTE);
-
-        SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(PipeProbe, HandleKeyDown));
-        SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(PipeProbe, HandleUpdate));
-        SubscribeToEvent(E_POSTUPDATE, URHO3D_HANDLER(PipeProbe, HandlePostUpdate));
-        SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(PipeProbe, HandlePostRenderUpdate));
-
-        // Unsubscribe the SceneUpdate event from base class as the camera node is being controlled in HandlePostUpdate() in this sample
-        UnsubscribeFromEvent(E_SCENEUPDATE);
-    }
-
-    virtual void Stop() {
-        // Perform optional cleanup after main loop has terminated
-    }
-
-    void HandleKeyDown(StringHash eventType, VariantMap& eventData) {
-        using namespace KeyDown;
-        // Check for pressing ESC. Note the engine_ member variable for convenience access to the Engine object
-        int key = eventData[P_KEY].GetInt();
-        if (key == KEY_ESCAPE)
-            engine_->Exit();
-
-        if (key == KEY_F1)
-            drawDebug_ ^= true;
-
-        if (key == KEY_F2) {
-            auto* debugHud = GetSubsystem<DebugHud>();
-            if (debugHud->GetMode() == DEBUGHUD_SHOW_NONE) {
-                debugHud->SetMode(DEBUGHUD_SHOW_STATS);
-            } else {
-                debugHud->SetMode(DEBUGHUD_SHOW_NONE);
-            }
+    if (key == KEY_F2) {
+        auto* debugHud = GetSubsystem<DebugHud>();
+        if (debugHud->GetMode() == DEBUGHUD_SHOW_NONE) {
+            debugHud->SetMode(DEBUGHUD_SHOW_STATS);
+        } else {
+            debugHud->SetMode(DEBUGHUD_SHOW_NONE);
         }
     }
+}
 
-    void CreateScene() {
-        auto* cache = GetSubsystem<ResourceCache>();
+void PipeProbe::CreateScene() {
+    auto* cache = GetSubsystem<ResourceCache>();
 
-        scene_ = new Scene(context_);
+    scene_ = new Scene(context_);
 
-        // Create scene subsystem components
-        scene_->CreateComponent<Octree>();
-        scene_->CreateComponent<PhysicsWorld>();
-        scene_->CreateComponent<DebugRenderer>();
+    // Create scene subsystem components
+    scene_->CreateComponent<Octree>();
+    scene_->CreateComponent<PhysicsWorld>();
+    scene_->CreateComponent<DebugRenderer>();
                 
-        URHO3D_PROFILE(CustomImageCopy);
-        XMLFile* style = cache->GetResource<XMLFile>("UI/DefaultStyle.xml");
-        DebugHud* debugHud = engine_->CreateDebugHud();
-        debugHud->SetDefaultStyle(style);
-        debugHud->SetMode(DEBUGHUD_SHOW_STATS);
+    URHO3D_PROFILE(CustomImageCopy);
+    XMLFile* style = cache->GetResource<XMLFile>("UI/DefaultStyle.xml");
+    DebugHud* debugHud = engine_->CreateDebugHud();
+    debugHud->SetDefaultStyle(style);
+    debugHud->SetMode(DEBUGHUD_SHOW_STATS);
 
-        // Create camera and define viewport. We will be doing load / save, so it's convenient to create the camera outside the scene,
-        // so that it won't be destroyed and recreated, and we don't have to redefine the viewport on load
-        cameraNode_ = new Node(context_);
-        cameraNode_->SetPosition(Vector3::ZERO);
-        cameraNode_->SetDirection(Vector3::DOWN);
-        auto* camera = cameraNode_->CreateComponent<Camera>();
-        camera->SetFarClip(500.0f);
+    // Create camera and define viewport. We will be doing load / save, so it's convenient to create the camera outside the scene,
+    // so that it won't be destroyed and recreated, and we don't have to redefine the viewport on load
+    cameraNode_ = new Node(context_);
+    cameraNode_->SetPosition(Vector3::ZERO);
+    cameraNode_->SetDirection(Vector3::DOWN);
+    auto* camera = cameraNode_->CreateComponent<Camera>();
+    camera->SetFarClip(500.0f);
 
-        GetSubsystem<Renderer>()->SetViewport(0, new Viewport(context_, scene_, camera));
+    GetSubsystem<Renderer>()->SetViewport(0, new Viewport(context_, scene_, camera));
 
-        // Create probe reflector
-        reflectorNode_ = scene_->CreateChild("PointLight");
-        auto* light = reflectorNode_->CreateComponent<Light>();
-        light->SetLightType(LIGHT_SPOT);
-        light->SetRange(150);
-    }
+    // Create probe reflector
+    reflectorNode_ = scene_->CreateChild("PointLight");
+    auto* light = reflectorNode_->CreateComponent<Light>();
+    light->SetLightType(LIGHT_SPOT);
+    light->SetRange(150);
+}
 
-    void HandleUpdate(StringHash eventType, VariantMap& eventData) {
-        using namespace Update;
+void PipeProbe::HandleUpdate(StringHash eventType, VariantMap& eventData) {
+    using namespace Update;
 
-        // Take the frame time step, which is stored as a float
-        float timeStep = eventData[P_TIMESTEP].GetFloat();
+    // Take the frame time step, which is stored as a float
+    float timeStep = eventData[P_TIMESTEP].GetFloat();
 
-        // Move the camera, scale movement with time step
-        MoveCamera(timeStep);
+    // Move the camera, scale movement with time step
+    MoveCamera(timeStep);
 
-        auto* input = GetSubsystem<Input>();
-        if (probe_) {
-            auto* ui = GetSubsystem<UI>();
-            if (!ui->GetFocusElement()) {
-                probe_->controls_.Set(CTRL_FORWARD, input->GetKeyDown(KEY_W));
-                probe_->controls_.Set(CTRL_BACK, input->GetKeyDown(KEY_S));
-                probe_->controls_.Set(CTRL_LEFT, input->GetKeyDown(KEY_A));
-                probe_->controls_.Set(CTRL_RIGHT, input->GetKeyDown(KEY_D));
-            } else {
-                probe_->controls_.Set(CTRL_FORWARD | CTRL_BACK | CTRL_LEFT | CTRL_RIGHT, false);
-            }
+    auto* input = GetSubsystem<Input>();
+    if (probe_) {
+        auto* ui = GetSubsystem<UI>();
+        if (!ui->GetFocusElement()) {
+            probe_->controls_.Set(CTRL_FORWARD, input->GetKeyDown(KEY_W));
+            probe_->controls_.Set(CTRL_BACK, input->GetKeyDown(KEY_S));
+            probe_->controls_.Set(CTRL_LEFT, input->GetKeyDown(KEY_A));
+            probe_->controls_.Set(CTRL_RIGHT, input->GetKeyDown(KEY_D));
+        } else {
+            probe_->controls_.Set(CTRL_FORWARD | CTRL_BACK | CTRL_LEFT | CTRL_RIGHT, false);
         }
     }
+}
 
-    void MoveCamera(float timeStep) {
-        // Do not move if the UI has a focused element (the console)
-        if (GetSubsystem<UI>()->GetFocusElement())
-            return;
+void PipeProbe::MoveCamera(float timeStep) {
+    // Do not move if the UI has a focused element (the console)
+    if (GetSubsystem<UI>()->GetFocusElement())
+        return;
 
-        auto* input = GetSubsystem<Input>();
+    auto* input = GetSubsystem<Input>();
 
-        // Movement speed as world units per second
-        const float MOVE_SPEED = 90.0f;
-        // Mouse sensitivity as degrees per pixel
-        const float MOUSE_SENSITIVITY = 0.1f;
+    // Movement speed as world units per second
+    const float MOVE_SPEED = 90.0f;
+    // Mouse sensitivity as degrees per pixel
+    const float MOUSE_SENSITIVITY = 0.1f;
 
-        // Use this frame's mouse motion to adjust camera node yaw and pitch. Clamp the pitch between -90 and 90 degrees
-        IntVector2 mouseMove = input->GetMouseMove();
-        yaw_ += MOUSE_SENSITIVITY * mouseMove.x_;
-        pitch_ += MOUSE_SENSITIVITY * mouseMove.y_;
-        yaw_ = Clamp(yaw_, -90.0f, 90.0f);
-        pitch_ = Clamp(pitch_, 0.0f, 180.0f);
+    // Use this frame's mouse motion to adjust camera node yaw and pitch. Clamp the pitch between -90 and 90 degrees
+    IntVector2 mouseMove = input->GetMouseMove();
+    yaw_ += MOUSE_SENSITIVITY * mouseMove.x_;
+    pitch_ += MOUSE_SENSITIVITY * mouseMove.y_;
+    yaw_ = Clamp(yaw_, -90.0f, 90.0f);
+    pitch_ = Clamp(pitch_, 0.0f, 180.0f);
 
-        // Construct new orientation for the camera scene node from yaw and pitch. Roll is fixed to zero
-        cameraNode_->SetRotation(Quaternion(pitch_, 0.0f, 0.0f) * Quaternion(0.0f, yaw_, 0.0f));
-    }
+    // Construct new orientation for the camera scene node from yaw and pitch. Roll is fixed to zero
+    cameraNode_->SetRotation(Quaternion(pitch_, 0.0f, 0.0f) * Quaternion(0.0f, yaw_, 0.0f));
+}
 
-    void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
-        // If draw debug mode is enabled, draw physics debug geometry. Use depth test to make the result easier to interpret
-        if (drawDebug_)
-            scene_->GetComponent<PhysicsWorld>()->DrawDebugGeometry(true);
-    }
+void PipeProbe::HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
+    // If draw debug mode is enabled, draw physics debug geometry. Use depth test to make the result easier to interpret
+    if (drawDebug_)
+        scene_->GetComponent<PhysicsWorld>()->DrawDebugGeometry(true);
+}
 
-    void HandlePostUpdate(StringHash eventType, VariantMap& eventData) {
-        if (!probe_)
-            return;
+void PipeProbe::HandlePostUpdate(StringHash eventType, VariantMap& eventData) {
+    if (!probe_)
+        return;
 
-        Node* probeNode = probe_->GetNode();
-        Quaternion dir = cameraNode_->GetRotation();
+    Node* probeNode = probe_->GetNode();
+    Quaternion dir = cameraNode_->GetRotation();
 
-        /*
-        Ray cameraRay(cameraNode_->GetWorldPosition(), Vector3::FORWARD);
-        PhysicsRaycastResult result;
-        scene_->GetComponent<PhysicsWorld>()->RaycastSingle(result, cameraRay, 1000, 2);
-        if (result.body_) {
-            Vector3 v(cameraRay.origin_ - result.normal_);
-            float angle = cameraRay.origin_.Angle(result.normal_);
+    /*
+    Ray cameraRay(cameraNode_->GetWorldPosition(), Vector3::FORWARD);
+    PhysicsRaycastResult result;
+    scene_->GetComponent<PhysicsWorld>()->RaycastSingle(result, cameraRay, 1000, 2);
+    if (result.body_) {
+        Vector3 v(cameraRay.origin_ - result.normal_);
+        float angle = cameraRay.origin_.Angle(result.normal_);
 
-            if (angle > 0 && Abs(90 - angle) > 5 ) {
-                cameraNode_->Rotate(Quaternion(90 - angle, cameraNode_->GetDirection()));
-            }
+        if (angle > 0 && Abs(90 - angle) > 5 ) {
+            cameraNode_->Rotate(Quaternion(90 - angle, cameraNode_->GetDirection()));
         }
-        */
+    }
+    */
       
-        Vector3 cameraTargetPos = probeNode->GetPosition() - dir * Vector3(0.0f, 0.0f, CAMERA_DISTANCE);
+    Vector3 cameraTargetPos = probeNode->GetPosition() - dir * Vector3(0.0f, 0.0f, CAMERA_DISTANCE);
 
-        cameraNode_->SetPosition(cameraTargetPos);
-        reflectorNode_->SetPosition(probeNode->GetPosition());
-        reflectorNode_->SetDirection(probeNode->GetDirection());
-    }
-};
-
-URHO3D_DEFINE_APPLICATION_MAIN(PipeProbe)
+    cameraNode_->SetPosition(cameraTargetPos);
+    reflectorNode_->SetPosition(probeNode->GetPosition());
+    reflectorNode_->SetDirection(probeNode->GetDirection());
+}

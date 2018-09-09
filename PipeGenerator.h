@@ -1,13 +1,13 @@
 #pragma once
 
 #include <Urho3D/Core/Object.h>
-#include <Urho3D/Scene/Scene.h>
-#include <Urho3D/Scene/Node.h>
-#include <Urho3D/Core/Context.h>
-#include <Urho3D/Graphics/Model.h>
-#include <Urho3D/Graphics/Material.h>
-
 #include <vector>
+
+namespace Urho3D {
+    class Scene;
+    class Model;
+    class Material;
+}
 
 using namespace Urho3D;
 
@@ -27,7 +27,6 @@ public:
     static void RegisterObject(Context * context);
 
     PipeGenerator(Context *context);
-    ~PipeGenerator();
     void Init(Scene *scene);
     float GetEdge();
     void GeneratePipes();

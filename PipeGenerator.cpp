@@ -1,26 +1,32 @@
 #pragma once
 
-#include "PipeGenerator.h"
-#include "Obstacle.h"
+#include <Urho3D/Core/Context.h>
+
+#include <Urho3D/Graphics/Geometry.h>
+#include <Urho3D/Graphics/Light.h>
+#include <Urho3D/Graphics/Material.h>
+#include <Urho3D/Graphics/Model.h>
+#include <Urho3D/Graphics/StaticModel.h>
+#include <Urho3D/Graphics/VertexBuffer.h>
 
 #include <Urho3D/IO/FileSystem.h>
-#include <Urho3D/Scene/Scene.h>
-#include <Urho3D/Graphics/StaticModel.h>
-#include <Urho3D/Graphics/Geometry.h>
-#include <Urho3D/Graphics/VertexBuffer.h>
-#include <Urho3D/Physics/CollisionShape.h>
-#include <Urho3D/Physics/RigidBody.h>
-#include <Urho3D/Resource/ResourceCache.h>
+
 #include <Urho3D/Math/MathDefs.h>
 
-#include <iostream>
+#include <Urho3D/Physics/CollisionShape.h>
+#include <Urho3D/Physics/RigidBody.h>
+
+#include <Urho3D/Resource/ResourceCache.h>
+
+#include <Urho3D/Scene/Scene.h>
+
 #include <algorithm>
-#include <vector>
+#include <iostream>
+
+#include "Obstacle.h"
+#include "PipeGenerator.h"
 
 PipeGenerator::PipeGenerator(Context *context): Object(context), pipeModels_(), nextPos_(Vector3::ZERO) {
-}
-
-PipeGenerator::~PipeGenerator() {
 }
 
 void PipeGenerator::RegisterObject(Context* context) {

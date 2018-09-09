@@ -3,7 +3,7 @@
 #include <Urho3D/Input/Controls.h>
 #include <Urho3D/Scene/LogicComponent.h>
 
-#include "PipeGenerator.h"
+class PipeGenerator;
 
 using namespace Urho3D;
 

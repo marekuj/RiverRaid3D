@@ -1,8 +1,6 @@
 #pragma once
 
 #include <Urho3D/Scene/LogicComponent.h>
-#include <Urho3D/Graphics/Model.h>
-#include <Urho3D/Graphics/Material.h>
 
 using namespace Urho3D;
 

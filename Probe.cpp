@@ -10,6 +10,7 @@
 #include <Urho3D/Resource/ResourceCache.h>
 #include <Urho3D/Scene/Scene.h>
 
+#include "PipeGenerator.h"
 #include "Probe.h"
 
 #include <iostream>
