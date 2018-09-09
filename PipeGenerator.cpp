@@ -73,13 +73,13 @@ void PipeGenerator::Start() {
 }
 
 void PipeGenerator::GeneratePipes() {
-    if (pipes_.size() > 0) {
-        for (std::vector<Node*>::iterator it = pipes_.begin(); it != pipes_.end() - 2; ++it) {
+    if (pipes_.size() > 10) {
+        for (std::vector<Node*>::iterator it = pipes_.begin(); it != pipes_.end() - 5; ++it) {
             auto* pipe = *it;
             pipe->Remove();
             
         }
-        pipes_.erase(pipes_.begin(), pipes_.end() - 2);
+        pipes_.erase(pipes_.begin(), pipes_.end() - 5);
     }
 
     for (int j = 0; j < 3; ++j) {
@@ -127,7 +127,7 @@ void PipeGenerator::GenerateLights(Node* pipeNode) {
     int offset = vertexCount / 4;
     while (j < vertexCount) {
         const Vector3& vertex = *((const Vector3*)(&data[(vertexStart + j) * vertexSize]));
-        const Vector3&  normal = *((const Vector3*)(&data[(vertexStart + j) * vertexSize + normalStart]));
+        const Vector3& normal = *((const Vector3*)(&data[(vertexStart + j) * vertexSize + normalStart]));
 
         Node* lightNode = pipeNode->CreateChild("PointLight");
         auto* light = lightNode->CreateComponent<Light>();
@@ -176,6 +176,15 @@ void PipeGenerator::Init(Scene *scene) {
     scene_ = scene;
     LoadModels();
     Start();
+}
+
+void PipeGenerator::Reset() {
+    for (std::vector<Node*>::iterator it = pipes_.begin(); it != pipes_.end(); ++it) {
+        auto* pipe = *it;
+        pipe->Remove();
+    }
+    pipes_.clear();
+    nextPos_ = Vector3::ZERO;
 }
 
 float PipeGenerator::GetEdge() {

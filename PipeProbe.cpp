@@ -1,6 +1,7 @@
 #include <Urho3D/Urho3D.h>
 
 #include <Urho3D/Core/CoreEvents.h>
+#include <Urho3D/Core/Timer.h>
 
 #include <Urho3D/Engine/Application.h>
 #include <Urho3D/Engine/Engine.h>
@@ -21,6 +22,7 @@
 #include <Urho3D/Scene/SceneEvents.h>
 
 #include <Urho3D/Physics/PhysicsWorld.h>
+#include <Urho3D/Physics/PhysicsEvents.h>
 
 #include <Urho3D/Resource/ResourceCache.h>
 
@@ -28,6 +30,7 @@
 #include <Urho3D/UI/Text.h>
 #include <Urho3D/UI/UI.h>
 
+#include "Hud.h"
 #include "PipeProbe.h"
 #include "Probe.h"
 #include "PipeGenerator.h"
@@ -49,6 +52,7 @@ PipeProbe::PipeProbe(Context* context):
 
     SetRandomSeed(Time::GetTimeSinceEpoch());
 
+    Hud::RegisterObject(context);
     Probe::RegisterObject(context);
     PipeGenerator::RegisterObject(context);
     Obstacle::RegisterObject(context);
@@ -62,8 +66,29 @@ void PipeProbe::Setup() {
 void PipeProbe::Start() {
     // Called after engine initialization. Setup application & subscribe to events here
     CreateScene();
-    auto *pipeGenerator = GetSubsystem<PipeGenerator>();
-    pipeGenerator->Init(scene_);
+    GetSubsystem<PipeGenerator>()->Init(scene_);
+    
+    SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(PipeProbe, HandleKeyDown));
+    SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(PipeProbe, HandleUpdate));
+    SubscribeToEvent(E_POSTUPDATE, URHO3D_HANDLER(PipeProbe, HandlePostUpdate));
+    SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(PipeProbe, HandlePostRenderUpdate));
+    SubscribeToEvent(E_PHYSICSCOLLISIONSTART, URHO3D_HANDLER(PipeProbe, HandleProbeCollision));
+
+    // Unsubscribe the SceneUpdate event from base class as the camera node is being controlled in HandlePostUpdate() in this sample
+    UnsubscribeFromEvent(E_SCENEUPDATE);
+
+    GetSubsystem<Hud>()->Reset("Press ENTER to start...");
+}
+
+void PipeProbe::StartGamePlay() {
+    if (probe_ != nullptr && probe_->IsEnabled()) {
+        return;
+    }
+
+    if (probe_ != nullptr) {
+        probe_->GetNode()->Remove();
+        GetSubsystem<PipeGenerator>()->Reset();
+    }
 
     Node* probeNode = scene_->CreateChild("Probe");
     probeNode->SetPosition(Vector3(0.0f, -1.0f, 0.0f));
@@ -71,18 +96,36 @@ void PipeProbe::Start() {
 
     probe_ = probeNode->CreateComponent<Probe>();
     probe_->Init();
-    
-    SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(PipeProbe, HandleKeyDown));
-    SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(PipeProbe, HandleUpdate));
-    SubscribeToEvent(E_POSTUPDATE, URHO3D_HANDLER(PipeProbe, HandlePostUpdate));
-    SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(PipeProbe, HandlePostRenderUpdate));
 
-    // Unsubscribe the SceneUpdate event from base class as the camera node is being controlled in HandlePostUpdate() in this sample
-    UnsubscribeFromEvent(E_SCENEUPDATE);
+    pointsTimer_.Reset();
+}
+
+void PipeProbe::StopGamePlay() {
+    probe_->SetEnabled(false);
+
+    auto* hud = GetSubsystem<Hud>();
+    String information;
+    information.AppendWithFormat("Probe has been crashed!\nScore %d\nPress ENTER to try again.", hud->GetPoints());
+    hud->Reset(information);
 }
 
 void PipeProbe::Stop() {
     // Perform optional cleanup after main loop has terminated
+}
+
+void PipeProbe::HandleProbeCollision(StringHash eventType, VariantMap& eventData) {
+    using namespace PhysicsCollisionStart;
+
+    if (probe_ == nullptr || !probe_->IsEnabled()) {
+        return;
+    }
+
+    Node* nodeA = static_cast<Node*>(eventData[P_NODEA].GetPtr());
+    Node* nodeB = static_cast<Node*>(eventData[P_NODEB].GetPtr());
+
+    if (nodeA->GetComponent<Probe>() || nodeB->GetComponent<Probe>()) {
+        StopGamePlay();
+    }
 }
 
 void PipeProbe::HandleKeyDown(StringHash eventType, VariantMap& eventData) {
@@ -103,6 +146,10 @@ void PipeProbe::HandleKeyDown(StringHash eventType, VariantMap& eventData) {
             debugHud->SetMode(DEBUGHUD_SHOW_NONE);
         }
     }
+
+    if (key == KEY_RETURN || key == KEY_RETURN2 || key == KEY_KP_ENTER) {
+        StartGamePlay();
+    }
 }
 
 void PipeProbe::CreateScene() {
@@ -114,9 +161,11 @@ void PipeProbe::CreateScene() {
     scene_->CreateComponent<Octree>();
     scene_->CreateComponent<PhysicsWorld>();
     scene_->CreateComponent<DebugRenderer>();
+
+    XMLFile* style = cache->GetResource<XMLFile>("UI/DefaultStyle.xml");
+    GetSubsystem<Hud>()->SetDefaultStyle(style);
                 
     URHO3D_PROFILE(CustomImageCopy);
-    XMLFile* style = cache->GetResource<XMLFile>("UI/DefaultStyle.xml");
     DebugHud* debugHud = engine_->CreateDebugHud();
     debugHud->SetDefaultStyle(style);
     debugHud->SetMode(DEBUGHUD_SHOW_STATS);
@@ -191,7 +240,7 @@ void PipeProbe::HandlePostRenderUpdate(StringHash eventType, VariantMap& eventDa
 }
 
 void PipeProbe::HandlePostUpdate(StringHash eventType, VariantMap& eventData) {
-    if (!probe_)
+    if (!probe_ || !probe_->IsEnabled())
         return;
 
     Node* probeNode = probe_->GetNode();
@@ -207,4 +256,10 @@ void PipeProbe::HandlePostUpdate(StringHash eventType, VariantMap& eventData) {
     if (probeNode->GetPosition().y_ - 500 < pipeGenerator->GetEdge()) {
         pipeGenerator->GeneratePipes();
     }
+
+    if (pointsTimer_.GetMSec(false) > 100) {
+        GetSubsystem<Hud>()->AddPoints(1);
+        pointsTimer_.Reset();
+    }
+
 }

@@ -41,10 +41,15 @@ void Probe::FixedUpdate(float timeStep) {
     if (controls_.buttons_ & CTRL_BACK) {
         force.z_ = 1.0f;
     }
-    
-    probeBody_->ApplyForce(force.Normalized() * 100);
+
+    probeBody_->ApplyForce(force.Normalized() * 3.0f * probeBody_->GetLinearVelocity().Length());
     node_->SetDirection(direction);
     prevPosition_ = node_->GetPosition();
+
+    if (speedTimer_.GetMSec(false) > 5000) {
+        probeBody_->SetLinearDamping(probeBody_->GetLinearDamping() - 0.01f);
+        speedTimer_.Reset();
+    }
 }
 
 void Probe::Init() {
@@ -57,12 +62,12 @@ void Probe::Init() {
 
     probeBody_ = node_->CreateComponent<RigidBody>();
     probeBody_->SetMass(4.0f);
-    probeBody_->SetLinearDamping(0.2f); // Some air resistance
+    probeBody_->SetLinearDamping(0.2f);
     probeBody_->SetAngularDamping(0.5f);
 
     probeBody_->SetCollisionLayer(2);
     probeBody_->SetFriction(400.75f);
-    probeBody_->SetLinearVelocity(node_->GetDirection() * 30);
+    probeBody_->SetLinearVelocity(node_->GetDirection() * 40);
     auto* probeShape = node_->CreateComponent<CollisionShape>();
     probeShape->SetGImpactMesh(object->GetModel());
 }
