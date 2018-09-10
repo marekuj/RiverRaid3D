@@ -37,7 +37,7 @@ void PipeGenerator::RegisterObject(Context* context) {
 void PipeGenerator::LoadModels() {
     auto* cache = GetSubsystem<ResourceCache>();
     
-    for (auto resourceDir : cache->GetResourceDirs()) {
+    for (const auto& resourceDir : cache->GetResourceDirs()) {
         std::vector<String> tmp;
         String fullDir = resourceDir + PIPE_MODEL_DIR;
         ScanFiles(tmp, fullDir);
@@ -48,7 +48,7 @@ void PipeGenerator::LoadModels() {
     }
     pipeMaterial_ = cache->GetResource<Material>("Materials/RustyMetalMaterial.xml");
 
-    for (auto resourceDir : cache->GetResourceDirs()) {
+    for (onst auto& resourceDir : cache->GetResourceDirs()) {
         std::vector<String> tmp;
         String fullDir = resourceDir + TRASH_MODEL_DIR;
         ScanFiles(tmp, fullDir);
@@ -58,7 +58,7 @@ void PipeGenerator::LoadModels() {
         });
     }
 
-    for (auto resourceDir : cache->GetResourceDirs()) {
+    for (onst auto& resourceDir : cache->GetResourceDirs()) {
         std::vector<String> tmp;
         String fullDir = resourceDir + TRASH_MATERIAL_DIR;
         ScanFiles(tmp, fullDir, ".xml");
@@ -76,9 +76,7 @@ void PipeGenerator::Start() {
 void PipeGenerator::GeneratePipes() {
     if (pipes_.size() > 10) {
         for (std::vector<Node*>::iterator it = pipes_.begin(); it != pipes_.end() - 5; ++it) {
-            auto* pipe = *it;
-            pipe->Remove();
-            
+            (*it)->Remove();
         }
         pipes_.erase(pipes_.begin(), pipes_.end() - 5);
     }
@@ -124,9 +122,8 @@ void PipeGenerator::GenerateLights(Node* pipeNode) {
     unsigned normalStart = VertexBuffer::GetElementOffset(buff->GetElements(), TYPE_VECTOR3, SEM_NORMAL);
     unsigned vertexStart = VertexBuffer::GetElementOffset(buff->GetElements(), TYPE_VECTOR3, SEM_POSITION);
 
-    int j = 0;
     int offset = vertexCount / 4;
-    while (j < vertexCount) {
+    for (int j = 0; j < vertexCount; j+=offset) {        
         const Vector3& vertex = *((const Vector3*)(&data[(vertexStart + j) * vertexSize]));
         const Vector3& normal = *((const Vector3*)(&data[(vertexStart + j) * vertexSize + normalStart]));
 
@@ -136,8 +133,6 @@ void PipeGenerator::GenerateLights(Node* pipeNode) {
         light->SetRange(150);
         lightNode->SetPosition(vertex);
         lightNode->SetDirection(normal);
-
-        j += offset;
     }
 }
 
@@ -180,10 +175,10 @@ void PipeGenerator::Init(Scene *scene) {
 }
 
 void PipeGenerator::Reset() {
-    for (std::vector<Node*>::iterator it = pipes_.begin(); it != pipes_.end(); ++it) {
-        auto* pipe = *it;
+    for (auto pipe : pipes_) {
         pipe->Remove();
     }
+
     pipes_.clear();
     nextPos_ = Vector3::ZERO;
 }
