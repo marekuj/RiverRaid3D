@@ -48,7 +48,7 @@ void PipeGenerator::LoadModels() {
     }
     pipeMaterial_ = cache->GetResource<Material>("Materials/RustyMetalMaterial.xml");
 
-    for (onst auto& resourceDir : cache->GetResourceDirs()) {
+    for (const auto& resourceDir : cache->GetResourceDirs()) {
         std::vector<String> tmp;
         String fullDir = resourceDir + TRASH_MODEL_DIR;
         ScanFiles(tmp, fullDir);
@@ -58,7 +58,7 @@ void PipeGenerator::LoadModels() {
         });
     }
 
-    for (onst auto& resourceDir : cache->GetResourceDirs()) {
+    for (const auto& resourceDir : cache->GetResourceDirs()) {
         std::vector<String> tmp;
         String fullDir = resourceDir + TRASH_MATERIAL_DIR;
         ScanFiles(tmp, fullDir, ".xml");
