@@ -23,7 +23,6 @@ public:
     void Setup() override;
     void Start() override;
     void Stop() override;
-    void Reset();
     void StartGamePlay();
     void StopGamePlay();
 
@@ -41,7 +40,6 @@ public:
 private:
     SharedPtr<Scene> scene_;
     SharedPtr<Node> cameraNode_;
-    SharedPtr<Node> reflectorNode_;
     WeakPtr<Probe> probe_;
 
     Timer pointsTimer_;

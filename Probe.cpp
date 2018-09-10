@@ -95,5 +95,12 @@ void Probe::Init() {
     probeBody_->SetLinearVelocity(node_->GetDirection() * 40);
     auto* probeShape = node_->CreateComponent<CollisionShape>();
     probeShape->SetGImpactMesh(object->GetModel());
+
+    // Create probe reflector
+    reflectorNode_ = node_->CreateChild("PointLight");
+    reflectorNode_->SetDirection(Vector3::FORWARD);
+    auto* light = reflectorNode_->CreateComponent<Light>();
+    light->SetLightType(LIGHT_SPOT);
+    light->SetRange(250);
 }
 

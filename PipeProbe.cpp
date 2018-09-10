@@ -179,12 +179,6 @@ void PipeProbe::CreateScene() {
     camera->SetFarClip(500.0f);
 
     GetSubsystem<Renderer>()->SetViewport(0, new Viewport(context_, scene_, camera));
-
-    // Create probe reflector
-    reflectorNode_ = scene_->CreateChild("PointLight");
-    auto* light = reflectorNode_->CreateComponent<Light>();
-    light->SetLightType(LIGHT_SPOT);
-    light->SetRange(250);
 }
 
 void PipeProbe::HandleUpdate(StringHash eventType, VariantMap& eventData) {
@@ -249,8 +243,6 @@ void PipeProbe::HandlePostUpdate(StringHash eventType, VariantMap& eventData) {
     Vector3 cameraTargetPos = probeNode->GetPosition() - dir * Vector3(0.0f, 0.0f, CAMERA_DISTANCE);
 
     cameraNode_->SetPosition(cameraTargetPos);
-    reflectorNode_->SetPosition(probeNode->GetPosition());
-    reflectorNode_->SetDirection(probeNode->GetDirection());
 
     auto * pipeGenerator = GetSubsystem<PipeGenerator>();
     if (probeNode->GetPosition().y_ - 500 < pipeGenerator->GetEdge()) {
