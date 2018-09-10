@@ -1,13 +1,13 @@
 #pragma once
 
 #include <Urho3D/Core/Object.h>
-#include <Urho3D/Scene/Scene.h>
-#include <Urho3D/Scene/Node.h>
-#include <Urho3D/Core/Context.h>
-#include <Urho3D/Graphics/Model.h>
-#include <Urho3D/Graphics/Material.h>
-
 #include <vector>
+
+namespace Urho3D {
+    class Scene;
+    class Model;
+    class Material;
+}
 
 using namespace Urho3D;
 
@@ -18,19 +18,19 @@ const String TRASH_MATERIAL_DIR = "Materials/Trash/";
 
 class PipeGenerator: public Object {
 
-
     URHO3D_OBJECT(PipeGenerator, Object)
 
 public:
     std::vector<Model*> pipeModels_;
 
-    static void RegisterObject(Context * context);
+    static void RegisterObject(Context* context);
 
-    PipeGenerator(Context *context);
-    ~PipeGenerator();
-    void Init(Scene *scene);
+    PipeGenerator(Context* context);
+    void Init(Scene* scene);
+    void Reset();
     float GetEdge();
     void GeneratePipes();
+
 private:
     std::vector<Node*> pipes_;
     std::vector<Model*> trashModels_;
@@ -41,8 +41,8 @@ private:
 
     void Start();
     void LoadModels();
-    void ScanFiles(std::vector<String> &result, const String& pathName, String ext = ".mdl");
+    void ScanFiles(std::vector<String>& result, const String& pathName, String ext = ".mdl");
     void GenerateLights(Node* pipeNode);
-    void GenerateEnemies(Node* pipeNode);
-    Node* RandomEnemy(Node* parent);
+    void GenerateObstacles(Node* pipeNode);
+    Node* RandomObstacle(Node* parent);
 };

@@ -1,25 +1,33 @@
 #pragma once
 
-#include "PipeGenerator.h"
+#include <Urho3D/Core/Context.h>
+
+#include <Urho3D/Graphics/Geometry.h>
+#include <Urho3D/Graphics/Light.h>
+#include <Urho3D/Graphics/Material.h>
+#include <Urho3D/Graphics/Model.h>
+#include <Urho3D/Graphics/StaticModel.h>
+#include <Urho3D/Graphics/VertexBuffer.h>
 
 #include <Urho3D/IO/FileSystem.h>
-#include <Urho3D/Scene/Scene.h>
-#include <Urho3D/Graphics/StaticModel.h>
-#include <Urho3D/Graphics/Geometry.h>
-#include <Urho3D/Graphics/VertexBuffer.h>
-#include <Urho3D/Physics/CollisionShape.h>
-#include <Urho3D/Physics/RigidBody.h>
-#include <Urho3D/Resource/ResourceCache.h>
+
 #include <Urho3D/Math/MathDefs.h>
 
-#include <iostream>
+#include <Urho3D/Physics/CollisionShape.h>
+#include <Urho3D/Physics/RigidBody.h>
+
+#include <Urho3D/Resource/ResourceCache.h>
+
+#include <Urho3D/Scene/Scene.h>
+
 #include <algorithm>
-#include <vector>
+#include <iostream>
 
-PipeGenerator::PipeGenerator(Context *context): Object(context), pipeModels_(), nextPos_(Vector3::ZERO), pipes_(4) {
-}
+#include "CollisionLayers.h"
+#include "Obstacle.h"
+#include "PipeGenerator.h"
 
-PipeGenerator::~PipeGenerator() {
+PipeGenerator::PipeGenerator(Context *context): Object(context), pipeModels_(), nextPos_(Vector3::ZERO) {
 }
 
 void PipeGenerator::RegisterObject(Context* context) {
@@ -66,14 +74,16 @@ void PipeGenerator::Start() {
 }
 
 void PipeGenerator::GeneratePipes() {
-    if (!pipes_.size() > 0) {
-        for (auto* pipe : pipes_) {
+    if (pipes_.size() > 10) {
+        for (std::vector<Node*>::iterator it = pipes_.begin(); it != pipes_.end() - 5; ++it) {
+            auto* pipe = *it;
             pipe->Remove();
+            
         }
-        pipes_.clear();
+        pipes_.erase(pipes_.begin(), pipes_.end() - 5);
     }
 
-    for (int j = 0; j < 2; ++j) {
+    for (int j = 0; j < 3; ++j) {
         Node* pipeNode = scene_->CreateChild("Pipe");
         pipeNode->SetScale(5);
 
@@ -87,15 +97,18 @@ void PipeGenerator::GeneratePipes() {
         object->SetMaterial(pipeMaterial_);
 
         auto* body = pipeNode->CreateComponent<RigidBody>();
-        body->SetCollisionLayer(2);
+        body->SetCollisionLayer(LAYER_WORLD);
         auto* shape = pipeNode->CreateComponent<CollisionShape>();
         shape->SetGImpactMesh(object->GetModel(), 0);
 
-        nextPos_.y_ -= model->GetBoundingBox().Size().y_ * pipeNode->GetScale().y_;
-
         GenerateLights(pipeNode);
-        GenerateEnemies(pipeNode);
+        if (nextPos_ != Vector3::ZERO) { //do not generate obstacles for very first pipe
+            GenerateObstacles(pipeNode);
+        }
+
         pipes_.push_back(pipeNode);
+
+        nextPos_.y_ -= model->GetBoundingBox().Size().y_ * pipeNode->GetScale().y_;
     }
 }
 
@@ -115,12 +128,12 @@ void PipeGenerator::GenerateLights(Node* pipeNode) {
     int offset = vertexCount / 4;
     while (j < vertexCount) {
         const Vector3& vertex = *((const Vector3*)(&data[(vertexStart + j) * vertexSize]));
-        const Vector3&  normal = *((const Vector3*)(&data[(vertexStart + j) * vertexSize + normalStart]));
+        const Vector3& normal = *((const Vector3*)(&data[(vertexStart + j) * vertexSize + normalStart]));
 
         Node* lightNode = pipeNode->CreateChild("PointLight");
         auto* light = lightNode->CreateComponent<Light>();
         light->SetLightType(LIGHT_POINT);
-        light->SetRange(100);
+        light->SetRange(150);
         lightNode->SetPosition(vertex);
         lightNode->SetDirection(normal);
 
@@ -128,7 +141,7 @@ void PipeGenerator::GenerateLights(Node* pipeNode) {
     }
 }
 
-void PipeGenerator::GenerateEnemies(Node* pipeNode) {
+void PipeGenerator::GenerateObstacles(Node* pipeNode) {
     auto* model = pipeNode->GetComponent<StaticModel>()->GetModel();
 
     auto buff = model->GetVertexBuffers()[0];
@@ -140,38 +153,39 @@ void PipeGenerator::GenerateEnemies(Node* pipeNode) {
     unsigned normalStart = VertexBuffer::GetElementOffset(buff->GetElements(), TYPE_VECTOR3, SEM_NORMAL);
     unsigned vertexStart = VertexBuffer::GetElementOffset(buff->GetElements(), TYPE_VECTOR3, SEM_POSITION);
 
-    for (int j = 0; j < 2; ++j) {
+    for (int j = 0; j < 5; ++j) {
         int rand = Rand() % vertexCount;
         const Vector3& vertex = *((const Vector3*)(&data[(vertexStart + rand) * vertexSize]));
         const Vector3&  normal = *((const Vector3*)(&data[(vertexStart + rand) * vertexSize + normalStart]));
 
-        auto* enemy = RandomEnemy(pipeNode);
-        enemy->SetPosition(vertex + (1.5f + Random(PIPE_RADIUS)) * normal);
+        auto* obstacle = RandomObstacle(pipeNode);
+        obstacle->SetPosition(vertex + (2.5f + Random(PIPE_RADIUS)) * normal);
     }
 }
 
-Node* PipeGenerator::RandomEnemy(Node* parent) {
-    auto* enemyNode = parent->CreateChild("enemy");
-    enemyNode->SetScale(Vector3::ONE * 0.4f);
-    enemyNode->SetRotation(Quaternion(90, Vector3::RIGHT) * Quaternion(RandStandardNormal(), Vector3::DOWN));
-
-    auto* cache = GetSubsystem<ResourceCache>();
-    auto* object = enemyNode->CreateComponent<StaticModel>();        
+Node* PipeGenerator::RandomObstacle(Node* parent) {
+    auto* obstacleNode = parent->CreateChild("obstacle");
+    auto* obstacle = obstacleNode->CreateComponent<Obstacle>();
     auto* model = trashModels_[Rand() % trashModels_.size()];
-    object->SetModel(model);
-    object->SetMaterial(trashMaterials_[Rand() % trashMaterials_.size()]);
+    auto* material = trashMaterials_[Rand() % trashMaterials_.size()];
+    obstacle->Init(model, material);
 
-    auto* body = enemyNode->CreateComponent<RigidBody>();
-    body->SetCollisionLayer(2);
-    enemyNode->CreateComponent<CollisionShape>()->SetGImpactMesh(model);
-
-    return enemyNode;
+    return obstacleNode;
 }
 
 void PipeGenerator::Init(Scene *scene) {
     scene_ = scene;
     LoadModels();
     Start();
+}
+
+void PipeGenerator::Reset() {
+    for (std::vector<Node*>::iterator it = pipes_.begin(); it != pipes_.end(); ++it) {
+        auto* pipe = *it;
+        pipe->Remove();
+    }
+    pipes_.clear();
+    nextPos_ = Vector3::ZERO;
 }
 
 float PipeGenerator::GetEdge() {
