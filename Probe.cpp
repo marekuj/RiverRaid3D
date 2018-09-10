@@ -1,18 +1,29 @@
 #include <Urho3D/Core/Context.h>
+
+#include <Urho3D/Graphics/Camera.h>
+#include <Urho3D/Graphics/Graphics.h>
 #include <Urho3D/Graphics/Material.h>
 #include <Urho3D/Graphics/Model.h>
+#include <Urho3D/Graphics/Renderer.h>
 #include <Urho3D/Graphics/StaticModel.h>
+
+#include <Urho3D/Math/Ray.h>
+
 #include <Urho3D/Physics/CollisionShape.h>
 #include <Urho3D/Physics/Constraint.h>
 #include <Urho3D/Physics/PhysicsEvents.h>
 #include <Urho3D/Physics/PhysicsWorld.h>
 #include <Urho3D/Physics/RigidBody.h>
+
 #include <Urho3D/Resource/ResourceCache.h>
+
 #include <Urho3D/Scene/Scene.h>
 
-#include "Probe.h"
-
 #include <iostream>
+
+#include "CollisionLayers.h"
+#include "Hud.h"
+#include "Probe.h"
 
 Probe::Probe(Context* context) : LogicComponent(context) {
     // Only the physics update event is needed: unsubscribe from the rest for optimization
@@ -50,9 +61,23 @@ void Probe::FixedUpdate(float timeStep) {
         probeBody_->SetLinearDamping(probeBody_->GetLinearDamping() - 0.01f);
         speedTimer_.Reset();
     }
+
+    Ray ray(node_->GetPosition(), direction);
+    PhysicsRaycastResult result;
+    GetScene()->GetComponent<PhysicsWorld>()->SphereCast(result, ray, 4.0f, 0.1f, LAYER_OBSTACLE);
+    if (result.body_) {
+        result.body_->SetCollisionLayer(LAYER_WORLD);
+
+        Vector2 flatPos(camera_->WorldToScreenPoint(result.position_));
+        IntVector2 windowSize(GetSubsystem<Graphics>()->GetSize());
+        windowSize.x_ *= flatPos.x_;
+        windowSize.y_ *= flatPos.y_;
+        GetSubsystem<Hud>()->AddExtraPoints(100, windowSize);
+    }
 }
 
 void Probe::Init() {
+    camera_ = GetSubsystem<Renderer>()->GetViewport(0)->GetCamera();
     auto* object = node_->CreateComponent<StaticModel>();
 
     auto* cache = GetSubsystem<ResourceCache>();
@@ -65,7 +90,7 @@ void Probe::Init() {
     probeBody_->SetLinearDamping(0.2f);
     probeBody_->SetAngularDamping(0.5f);
 
-    probeBody_->SetCollisionLayer(2);
+    probeBody_->SetCollisionLayer(LAYER_WORLD);
     probeBody_->SetFriction(400.75f);
     probeBody_->SetLinearVelocity(node_->GetDirection() * 40);
     auto* probeShape = node_->CreateComponent<CollisionShape>();

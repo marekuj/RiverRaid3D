@@ -32,6 +32,7 @@ public:
 
 private:
     WeakPtr<RigidBody> probeBody_;
+    WeakPtr<Camera> camera_;
 
     Vector3 prevPosition_;
     Timer speedTimer_;

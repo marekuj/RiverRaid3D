@@ -8,6 +8,7 @@
 #include <Urho3D/Physics/RigidBody.h>
 
 #include "Obstacle.h"
+#include "CollisionLayers.h"
 
 Obstacle::Obstacle(Context* context) : LogicComponent(context), floatFactor_(0) {
     SetUpdateEventMask(USE_FIXEDUPDATE);
@@ -26,7 +27,7 @@ void Obstacle::Init(Model* model, Material* material) {
     object->SetMaterial(material);
 
     auto* body = node_->CreateComponent<RigidBody>();
-    body->SetCollisionLayer(2);
+    body->SetCollisionLayer(LAYER_WORLD | LAYER_OBSTACLE);
     node_->CreateComponent<CollisionShape>()->SetGImpactMesh(model);
 }
 

@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <iostream>
 
+#include "CollisionLayers.h"
 #include "Obstacle.h"
 #include "PipeGenerator.h"
 
@@ -96,7 +97,7 @@ void PipeGenerator::GeneratePipes() {
         object->SetMaterial(pipeMaterial_);
 
         auto* body = pipeNode->CreateComponent<RigidBody>();
-        body->SetCollisionLayer(2);
+        body->SetCollisionLayer(LAYER_WORLD);
         auto* shape = pipeNode->CreateComponent<CollisionShape>();
         shape->SetGImpactMesh(object->GetModel(), 0);
 

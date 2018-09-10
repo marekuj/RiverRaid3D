@@ -36,6 +36,8 @@ public:
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData);
     void HandlePostUpdate(StringHash eventType, VariantMap& eventData);
 
+    void HandleMouseButtonDown(StringHash eventType, VariantMap & eventData);
+
 private:
     SharedPtr<Scene> scene_;
     SharedPtr<Node> cameraNode_;

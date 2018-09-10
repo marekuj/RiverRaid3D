@@ -21,6 +21,9 @@ public:
     void Reset(const String& informationText);
     int GetPoints();
     void AddPoints(int points);
+    void AddExtraPoints(int points, const IntVector2& position);
+
+    void HandleTextAnimationFinished(StringHash eventType, VariantMap & eventData);
 
 private:
     SharedPtr<Text> pointsValue_;
