@@ -95,7 +95,7 @@ void PipeGenerator::GeneratePipes() {
         object->SetMaterial(pipeMaterial_);
 
         auto* body = pipeNode->CreateComponent<RigidBody>();
-        body->SetCollisionLayer(LAYER_WORLD);
+        body->SetCollisionLayer(LAYER_WORLD | LAYER_PIPE);
         auto* shape = pipeNode->CreateComponent<CollisionShape>();
         shape->SetGImpactMesh(object->GetModel(), 0);
 

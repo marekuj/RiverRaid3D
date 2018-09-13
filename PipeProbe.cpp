@@ -17,6 +17,8 @@
 #include <Urho3D/Input/Input.h>
 #include <Urho3D/Input/InputEvents.h>
 
+#include <Urho3D/Math/Ray.h>
+
 #include <Urho3D/Scene/Node.h>
 #include <Urho3D/Scene/Scene.h>
 #include <Urho3D/Scene/SceneEvents.h>
@@ -30,6 +32,7 @@
 #include <Urho3D/UI/Text.h>
 #include <Urho3D/UI/UI.h>
 
+#include "CollisionLayers.h"
 #include "Hud.h"
 #include "PipeProbe.h"
 #include "Probe.h"
@@ -159,7 +162,7 @@ void PipeProbe::CreateScene() {
 
     // Create scene subsystem components
     scene_->CreateComponent<Octree>();
-    scene_->CreateComponent<PhysicsWorld>();
+    world_ = scene_->CreateComponent<PhysicsWorld>();
     scene_->CreateComponent<DebugRenderer>();
 
     XMLFile* style = cache->GetResource<XMLFile>("UI/DefaultStyle.xml");
@@ -239,8 +242,16 @@ void PipeProbe::HandlePostUpdate(StringHash eventType, VariantMap& eventData) {
 
     Node* probeNode = probe_->GetNode();
     Quaternion dir = cameraNode_->GetRotation();
-     
-    Vector3 cameraTargetPos = probeNode->GetPosition() - dir * Vector3(0.0f, 0.0f, CAMERA_DISTANCE);
+    
+    Vector3 cameraStartPos = probeNode->GetPosition();
+    Vector3 cameraTargetPos = cameraStartPos - dir * Vector3(0.0f, 0.0f, CAMERA_DISTANCE);
+
+    Ray cameraRay(cameraStartPos,  cameraTargetPos - cameraStartPos);
+    PhysicsRaycastResult raycastResult;
+    world_->RaycastSingle(raycastResult, cameraRay, (cameraTargetPos - cameraStartPos).Length(), LAYER_PIPE);
+    if (raycastResult.body_) {
+        cameraTargetPos = cameraStartPos + cameraRay.direction_ * (raycastResult.distance_ - 0.5f);
+    }
 
     cameraNode_->SetPosition(cameraTargetPos);
 

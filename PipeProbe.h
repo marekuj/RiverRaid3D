@@ -38,6 +38,7 @@ public:
 private:
     SharedPtr<Scene> scene_;
     SharedPtr<Node> cameraNode_;
+    SharedPtr<PhysicsWorld> world_;
     WeakPtr<Probe> probe_;
 
     Timer pointsTimer_;
